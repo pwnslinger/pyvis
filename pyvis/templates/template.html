@@ -281,6 +281,14 @@
                   });
               {%  endif %}
 
+              {% if enable_javascript %}
+                function htmlTitle(html) {
+                    const container = document.createElement("div");
+                    container.innerHTML = html;
+                    return container;
+                };
+              {% endif %}
+
               {% if filter_menu %}
                   // explicitly using onItemAdd and this function as we need to save multiple values
                   let updateValueFilter = function() {
@@ -438,8 +446,28 @@
                   allNodes = nodes.get({ returnType: "Object" });
                   for (nodeId in allNodes) {
                     nodeColors[nodeId] = allNodes[nodeId].color;
+
+                  {% if enable_javascript %}
+                    if ("title" in allNodes[nodeId]) {
+                        allNodes[nodeId].title =htmlTitle(allNodes[nodeId].title);
+                    } else {
+                        console.log("Object does not have title key");
+                    }
+                  {% endif %}
+
                   }
                   allEdges = edges.get({ returnType: "Object" });
+
+                  {% if enable_javascript %}
+                    // if the user wants to enable javascript
+                for (edgeId in allEdges) {
+                      if ("title" in allEdges[edgeId]) {
+                        allEdges[edgeId].title =htmlTitle(allEdges[edgeId].title);
+                      } else {
+                      console.log("Object does not have title key");
+                      }
+                }                             
+                  {% endif %}
                   // adding nodes and edges to the graph
                   data = {nodes: nodes, edges: edges};
 
@@ -548,7 +576,7 @@
                       });
                   {% endif %}
 
-                  return network;
+                return network;
 
               }
               drawGraph();

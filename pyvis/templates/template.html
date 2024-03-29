@@ -316,6 +316,30 @@
                     }
                 }
 
+                // function to copy the text to clipboard
+                const copyToClipboard = async () => {
+                    try {
+                        // using the event to grab the pre tag
+                        const element = event.currentTarget.previousElementSibling;
+                        const button = event.currentTarget;
+                        var btnId = button.id;
+                        //const element = document.querySelector(".user-select-all");
+                        await navigator.clipboard.writeText(element.textContent);
+                        console.log("Text copied to clipboard!");
+                        
+                        // use jquery to show the tooltip with a message
+                        $('#'+btnId).tooltip('hide')
+                        .attr('title', "Copied!")
+                        .tooltip('show');
+                        setTimeout(() => {
+                            $('#'+btnId).tooltip('hide');
+                        }, 1000);
+                        
+                    } catch (error) {
+                        console.error("Failed to copy to clipboard:", error);
+                    }
+                };
+
               {% if filter_menu %}
                   // explicitly using onItemAdd and this function as we need to save multiple values
                   let updateValueFilter = function() {

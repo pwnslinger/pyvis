@@ -363,6 +363,118 @@
                     }
                 };
 
+                /*
+                    get_event function is responsible for fetching the event data from the server
+                    and displaying it in the event log viewer, which is a tabbed view.
+                    reordering of the keys is done to display certain keys first.
+                    json-editor is used to display the event data in a structured format.
+                */
+                function get_event(file, line) {
+                    fetch("http://localhost:8000/get_event", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({"filepath": file, "line": line}),
+                        mode: "cors",
+                        cache: "no-cache",
+                        credentials: "same-origin",
+                        with_credentials: true,
+                    }).then(function (response) {
+                        return response.json();
+                    }).then(function (data) {
+                        // reorder certain keys to be displayed first
+                        let keys = ["ts", "pid", "puid", "name", "path", "cmd_line", "local_ipv4", "local_port", "remote_ipv4", "remote_port", "proto"];
+                        let event_name = Object.keys(data["event"])[0];
+                        let reordered = {};
+
+                        for (let each of keys) {
+                            if (data["event"][event_name].hasOwnProperty(each)) {
+                                // check if key is remote_ipv4 or local_ipv4
+                                if (each === "remote_ipv4" || each === "local_ipv4") {
+                                    reordered[each] = int2ip(data["event"][event_name][each]);
+                                } else {
+                                reordered[each] = data["event"][event_name][each];
+                                }
+                            }
+                        }
+
+                        for (let each in data["event"][event_name]) {
+                            if (!reordered.hasOwnProperty(each)) {
+                                reordered[each] = data["event"][event_name][each];
+                            }
+                        }
+
+                        function int2ip (ipInt) {
+                            return ( (ipInt>>>24) +'.' + (ipInt>>16 & 255) +'.' + (ipInt>>8 & 255) +'.' + (ipInt & 255) );
+                        }
+
+                        let outIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red" class="bi bi-arrow-up-right-square" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M15 2a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1zM0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm5.854 8.803a.5.5 0 1 1-.708-.707L9.243 6H6.475a.5.5 0 1 1 0-1h3.975a.5.5 0 0 1 .5.5v3.975a.5.5 0 1 1-1 0V6.707z"/>
+                        </svg>`
+                        
+                        let inIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="green" class="bi bi-arrow-down-left-square" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M15 2a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1zM0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm10.096 3.146a.5.5 0 1 1 .707.708L6.707 9.95h2.768a.5.5 0 1 1 0 1H5.5a.5.5 0 0 1-.5-.5V6.475a.5.5 0 1 1 1 0v2.768z"/>
+                        </svg>`
+
+                        let libIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="yellow" class="bi bi-book half" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm2 0a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H2z"/> </svg>`
+
+                        let fileIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark" viewBox="0 0 16 16">
+                        <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/></svg>`
+
+                        // check if event_name has "netflow" string
+                        if (event_name.includes("netflow")) {
+                            // split the event_name by ":" and get the last element
+                            let dir = event_name.split(":").pop();
+                            ipv4 = int2ip(data['event'][event_name]['remote_ipv4'])
+                            if (dir === "out") {
+                                // convert ipv4 integer to string
+                                var event = outIcon + " " + ipv4;
+                            } else {
+                                var event = inIcon + " " + ipv4;
+                            }
+                        } else {
+                            var event = fileIcon + " " + data['event'][event_name]['name'];
+                        }
+     
+                       // tabId using line number
+                        let tabId = `event-${line}`;
+
+                        document.getElementById("eventTab").innerHTML += `
+                        <li class="nav-item">
+                            <a href="#${tabId}" class="nav-link">
+                                <button class="btn-close btn-sm closeTab" type="button" onclick=registerCloseEvent("${tabId}")></button>
+                                ${event}
+                        </li>`
+
+                        document.querySelector(".tab-content").innerHTML += `
+                        <div class="tab-pane active" id="${tabId}">
+                            <pre id="json-display-${tabId}" class="json-editor-blackboard user-select-all" contenteditable="false" aria-hidden="true" spellcheck="false"></pre>
+                            <button id="cp-btn-${tabId}" class="copyBtn btn" data-toggle="tooltip" onclick="copyToClipboard(event)">&#128203;</button>
+                        </div>`
+
+                        // from json dump event data
+                        var editor = new JsonEditor(document.getElementById(`json-display-${tabId}`), reordered);
+                        /*
+
+                        // from json dump event data
+                        var text = JSON.stringify(data["event"], null, 4);
+
+                        let result_element = document.querySelector("#highlighting-content");
+                        // Handle final newlines (see article)
+                        if(text[text.length-1] == "\n") {
+                            text += " ";
+                        }
+                        // Update code
+                        result_element.innerHTML = text.replace(new RegExp("&", "g"), "&amp;").replace(new RegExp("<", "g"), "&lt;");
+                        // Syntax Highlight
+                        Prism.highlightElement(result_element);
+                        */
+                    });
+                    
+                }
+
               {% if filter_menu %}
                   // explicitly using onItemAdd and this function as we need to save multiple values
                   let updateValueFilter = function() {

@@ -289,6 +289,33 @@
                 };
               {% endif %}
 
+              function toggleDropdown(event) {
+                    
+                    var btn = event.srcElement;
+                    var dropdown = btn.nextElementSibling;
+                    var infoDiv = btn.parentElement.parentElement;
+                    
+                    let rest = infoDiv.querySelectorAll(`div.dropdown:not(#${dropdown.id})`);
+                    for (let each of rest) {
+                        if (each.style.display === "block") {
+                            each.style.display = "none";
+                            // in place change [-] to [+]
+                            type = each.previousElementSibling.innerHTML.split(" ")[1];
+                            each.previousElementSibling.innerHTML = `[+] ${type}`;
+                        }
+                    }
+
+                    var type = btn.innerHTML.split(" ")[1];
+
+                    if (dropdown.style.display === "none") {
+                        dropdown.style.display = "block";
+                        btn.innerHTML = "[-] " + type;
+                    } else {
+                        dropdown.style.display = "none";
+                        btn.innerHTML = "[+] " + type;
+                    }
+                }
+
               {% if filter_menu %}
                   // explicitly using onItemAdd and this function as we need to save multiple values
                   let updateValueFilter = function() {

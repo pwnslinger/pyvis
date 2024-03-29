@@ -237,6 +237,20 @@
               </div>
             {% endif %}
             <div id="mynetwork" class="card-body"></div>
+
+            <!-- card footer for event log viewer -->
+            <div id="event-logs" class="card-footer bg-transparent border-success">
+                <div class="container-fluid">
+                    <ul class="nav nav-pills" role="tablist" id="eventTab">
+                        <!-- tabs auto-generates using JS -->
+                    </ul>
+                    <div class="row-fluid">
+                        <div class="tab-content span4">
+                            <!-- auto-populates using JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         {% if nodes|length > 100 and physics_enabled %}

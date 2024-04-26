@@ -37,7 +37,7 @@
             integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" 
             crossorigin="anonymous"></script>
         
-            <script type="text/javascript" src="lib/json-editor/jquery.json-editor.min.js"></script>
+        <script type="text/javascript" src="lib/json-editor/jquery.json-editor.min.js"></script>
 <center>
 <h1>{{heading}}</h1>
 </center>
@@ -70,6 +70,121 @@
                  position: relative;
                  float: left;
              }
+
+             #infoDiv {
+                position: absolute;
+                border: 1px solid #ccc;
+                padding: 10px;
+                background-color: white;
+                display: none;
+            }
+
+            .dropdown {
+                display: none;
+                position: absolute;
+                background-color: #f9f9f9;
+                min-width: 160px;
+                max-height: 200px;
+                overflow-y: auto;
+                box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+                z-index: 1;
+            }
+            
+            p {overflow: hidden; white-space: nowrap;}
+
+            .card {
+            border: none;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            }
+
+            .card-footer {
+                flex: 1;
+                padding: 0;
+                border: none;
+            }
+
+            .dropdown-btn {
+                cursor: pointer;
+                display: inline-block;
+            }
+
+            #close {
+                float:right;
+                display:inline-block;
+                padding:2px 5px;
+                background:#ccc;
+            }
+
+            #close:hover {
+                float:right;
+                display:inline-block;
+                padding:2px 5px;
+                background:#ccc;
+                color:#fff;
+            }
+
+            #pin {
+                float: right;
+                display:inline-block;
+                padding:2px 5px;
+                background:#ccc;
+                color:#fff;
+            }
+
+            #json-display {
+            border: 1px solid #000;
+            margin: 0;
+            padding: 10px 20px;
+            height: 290px;
+            width: calc(100% - 5px);
+            overflow-y: auto;
+            border: 0;
+            background-color: #1c2833;
+            }
+
+            /* for prism json syntax highlighting */
+            #highlighting {
+            /* Both elements need the same text and space styling so they are directly on top of each other */
+            margin: 10px;
+            padding: 10px;
+            border: 0;
+            width: calc(100% - 32px);
+            height: 275px;
+            }
+            #highlighting, #highlighting * {
+            /* Also add text styles to highlighing tokens */
+            font-size: 7pt;
+            font-family: monospace;
+            line-height: 1.5;
+            tab-size: 2;
+            }
+
+            #highlighting {
+            /* In the same place */
+            position: absolute;
+            }
+
+            #highlighting {
+            z-index: 0;
+            }
+
+            /* Can be scrolled */
+            #highlighting {
+            overflow: auto;
+            white-space: nowrap; /* Allows textarea to scroll horizontally */
+            }
+
+            /* Paragraphs; First Image */
+            * {
+            font-family: "Fira Code", monospace;
+            }
+            p code {
+            border-radius: 2px;
+            background-color: #eee;
+            color: #111;
+            }
 
              {% if nodes|length > 100 and physics_enabled %}
              #loadingBar {
@@ -693,6 +808,123 @@
                   {% if neighborhood_highlight %}
                     network.on("click", neighbourhoodHighlight);
                   {% endif %}
+
+                  network.on("selectNode", show_div);
+                  
+                  function show_div(params) {
+                    console.log("in show_div");
+                    allNodes = nodes.get({ returnType: "Object" });
+
+                    var fileExists = false;
+                    var libExists = false;
+                    var networkExists = false;
+
+                    // find if there's any other infoDiv and remove it
+                    var allInfoDivs = document.querySelectorAll('[id=infoDiv]');
+                    for (var i = 0; i < allInfoDivs.length; i++) {
+                        if (allInfoDivs[i].getAttribute("pin") != "true") {
+                            allInfoDivs[i].parentNode.removeChild(allInfoDivs[i]);
+                        }
+                    }
+
+                    var infoDiv = document.createElement("div");
+                    infoDiv.id = "infoDiv";
+                    infoDiv.style.left = params.pointer.DOM.x + "px";
+                    infoDiv.style.top = params.pointer.DOM.y + "px";
+                    infoDiv.style.display = "block";
+
+                    var closeSpan = document.createElement("span");
+                    closeSpan.id = "close";
+                    closeSpan.innerHTML = "&#x2715;";
+                    closeSpan.onclick = function() {
+                        this.parentNode.parentNode.removeChild(this.parentNode);
+                        return false;
+                    }
+
+                    var pinSpan = document.createElement("span");
+                    pinSpan.id = "pin";
+                    // add U+1F4CC in innerHTML
+                    pinSpan.innerHTML = "&#128204;";
+
+                    pinSpan.onclick = function() {
+                        // check if the pin is pinned or not using the unicode
+                        if (this.innerHTML.codePointAt(0) == 128204) {
+                            this.innerHTML = "&#128205;";
+                            this.parentElement.setAttribute("pin", "true"); 
+                        }
+                        else {
+                            this.innerHTML = "&#128204;";
+                            this.parentElement.setAttribute("pin", "false");
+                        }
+
+                    }
+
+                    infoDiv.appendChild(pinSpan);
+                    infoDiv.appendChild(closeSpan);
+
+                    if (allNodes[params.nodes[0]].hasOwnProperty('libs')) {
+                        // set bool to true
+                        var libExists = true;
+                        var libs = allNodes[params.nodes[0]].libs;
+
+                        var libDiv = document.createElement("div");
+                        libDiv.id = "libDiv";
+                        libDiv.innerHTML = libs;
+                        libDiv.style.left = params.pointer.DOM.x + "px";
+                        libDiv.style.top = params.pointer.DOM.y + "px";
+                        libDiv.style.display = "block";
+
+                        infoDiv.appendChild(libDiv);
+                        //network.canvas.body.container.appendChild(infoDiv);
+                    }
+                    else {
+                        console.log("No libs found");
+                    }
+
+                    // check if files are present in the node
+                    if (allNodes[params.nodes[0]].hasOwnProperty('files')) {
+                        // set bool to true
+                        var fileExists = true;
+                        var files = allNodes[params.nodes[0]].files;
+
+                        var fileDiv = document.createElement("div");
+                        fileDiv.id = "fileDiv";
+                        fileDiv.innerHTML = files;
+                        fileDiv.style.left = params.pointer.DOM.x + "px";
+                        fileDiv.style.top = params.pointer.DOM.y + "px";
+                        fileDiv.style.display = "block";
+                        
+                        infoDiv.appendChild(fileDiv);
+                        
+                    }
+                    else {
+                        console.log("No files found");
+                    }
+
+                    // check if networks are present in the node
+                    if (allNodes[params.nodes[0]].hasOwnProperty('network')) {
+                        // set bool to true
+                        var networkExists = true;
+                        var networks = allNodes[params.nodes[0]].network;
+
+                        var networkDiv = document.createElement("div");
+                        networkDiv.id = "networkDiv";
+                        networkDiv.innerHTML = networks;
+                        networkDiv.style.left = params.pointer.DOM.x + "px";
+                        networkDiv.style.top = params.pointer.DOM.y + "px";
+                        networkDiv.style.display = "block";
+                        
+                        infoDiv.appendChild(networkDiv);
+                        
+                    }
+                    else {
+                        console.log("No networks found");
+                    }
+
+                    if (libExists || fileExists || networkExists) {
+                        network.canvas.body.container.appendChild(infoDiv);
+                    }
+                }
 
                   {% if select_menu %}
                     network.on("selectNode", neighbourhoodHighlight);
